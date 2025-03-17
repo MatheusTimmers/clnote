@@ -1,16 +1,14 @@
 package notes
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 
-	"github.com//seu-projeto/db"
+	"github.com/MatheusTimmers/clnote/db"
 )
 
-// Abre o editor para adicionar uma nova nota e salva no banco
-func AddNote() {
+func AddNote(title string) {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = "nvim"
@@ -45,11 +43,6 @@ func AddNote() {
 		return
 	}
 
-	// Solicita um título para a nota
-	fmt.Print("Digite um título para a nota: ")
-	reader := bufio.NewReader(os.Stdin)
-	title, _ := reader.ReadString('\n')
-
 	_, err = db.DB.Exec("INSERT INTO notes (title, content) VALUES ($1, $2)", title, string(content))
 	if err != nil {
 		fmt.Println("Erro ao salvar nota no banco:", err)
@@ -59,7 +52,6 @@ func AddNote() {
 	fmt.Println("Nota salva com sucesso!")
 }
 
-// Lista as notas armazenadas no banco
 func ListNotes() {
 	rows, err := db.DB.Query("SELECT id, title, created_at FROM notes ORDER BY created_at DESC")
 	if err != nil {
@@ -82,4 +74,29 @@ func ListNotes() {
 
 		fmt.Printf("[%d] %s - %s\n", id, title, createdAt)
 	}
+}
+
+func GetNote(title string) {
+	rows, err := db.DB.Query("SELECT id, title, content, created_at FROM notes WHERE title = $1", title)
+	if err != nil {
+		fmt.Println("Erro ao buscar nota:", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int
+		var title string
+		var createdAt string
+		var content string
+
+		err := rows.Scan(&id, &title, &content, &createdAt)
+		if err != nil {
+			fmt.Println("Erro ao ler nota:", err)
+			continue
+		}
+
+		fmt.Printf("[%d] %s \n %s\n \n %s\n", id, title, content, createdAt)
+	}
+
 }
